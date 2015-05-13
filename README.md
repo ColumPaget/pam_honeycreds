@@ -52,26 +52,26 @@ This specifies that, for user root, we should check for honeycreds in the file /
 
 Configuration options are:
 
-user=[user patterns]
-: Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to 'user=\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
+user=[user patterns]  
+Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to 'user=\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
 
-file=[path to creds file]
-: Comma separated list of files in which to check for matching passwords. File format is discussed below.
+file=[path to creds file]  
+Comma separated list of files in which to check for matching passwords. File format is discussed below.
 
-syslog
-: Record events via syslog messages
+syslog  
+Record events via syslog messages
 
-logcreds
-: If this option appears, then passwords will be logged in syslog messages, *but only if they do not appear in any of the file lists*. If your own passwords appear in the list files (as sha256 salted hashes, of course) they will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
+logcreds  
+If this option appears, then passwords will be logged in syslog messages, *but only if they do not appear in any of the file lists*. If your own passwords appear in the list files (as sha256 salted hashes, of course) they will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
 
-script=[path]
-: Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '[file path]:[line in file]', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
+script=[path]  
+Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '[file path]:[line in file]', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
 
-allow
-: allow user to continue log in even if their password matches one of the file lists. This will not log a user in, but the default behavior is to refuse login. If 'allow' is set, then pam_honeycreds tells the calling application to ignore it, and carry on with normal login using other authentication modules. pam_honeycreds *NEVER*  returns 'PAM_SUCCESS', and so never autheticates a user, but it can explicitly deny a user. The default behavior is to allow authentication to continue if the password is not in any list, but to deny login if a match is found.
+allow  
+allow user to continue log in even if their password matches one of the file lists. This will not log a user in, but the default behavior is to refuse login. If 'allow' is set, then pam_honeycreds tells the calling application to ignore it, and carry on with normal login using other authentication modules. pam_honeycreds *NEVER*  returns 'PAM_SUCCESS', and so never autheticates a user, but it can explicitly deny a user. The default behavior is to allow authentication to continue if the password is not in any list, but to deny login if a match is found.
 
-denyall
-: deny all logins, whether a match is found or not. This is normally used against a user for whom we want to go through the authentication process, but whom we never wish to allow to log in. Applications like sshd allow us to specify which users can log in, but users not in this list are not properly processed through pam_honeycreds. Thus we configure sshd to allow login by any user, but use the 'denyall' option at the pam_honeycreds level to block certain users from logging in at all. So, if we want to monitor the users root and admin, but we never want to allow those users to log in, we might add this to the /etc/pam.d/sshd file:
+denyall  
+deny all logins, whether a match is found or not. This is normally used against a user for whom we want to go through the authentication process, but whom we never wish to allow to log in. Applications like sshd allow us to specify which users can log in, but users not in this list are not properly processed through pam_honeycreds. Thus we configure sshd to allow login by any user, but use the 'denyall' option at the pam_honeycreds level to block certain users from logging in at all. So, if we want to monitor the users root and admin, but we never want to allow those users to log in, we might add this to the /etc/pam.d/sshd file:
 ```
 auth    required  pam_honeycreds.so user=root,admin syslog logcreds denyall file=/etc/honeycreds.lst script=/usr/local/bin/root-login.sh
 ```
@@ -85,11 +85,11 @@ prompt=[prompt]
 
 The credentials to watch for are stored in text-files as one credential-per-line in either plaintext or as sha256 hashes. A few options can appear on the same line after the credential. Options are separated with a single space. Options are:
 
-salt=[salt]
-: A string that is prepended to the credential before hashing. This is intended to complicate the use of 'rainbow tables', which are pregenerated tables of hashes for all popular passwords, as the rainbow table must now be built for all possible random strings that could be prefixed to the password.
+salt=[salt]  
+A string that is prepended to the credential before hashing. This is intended to complicate the use of 'rainbow tables', which are pregenerated tables of hashes for all popular passwords, as the rainbow table must now be built for all possible random strings that could be prefixed to the password.
 
-user=[user pattern]
-: An fnmatch pattern that matches usernames *for which this string is actually the password*. This will suppress the creation of an event, or any logging, or running of a script for this user (unless 'denyall' is set, in which case a script will run if it is provided).
+user=[user pattern]  
+An fnmatch pattern that matches usernames *for which this string is actually the password*. This will suppress the creation of an event, or any logging, or running of a script for this user (unless 'denyall' is set, in which case a script will run if it is provided).
 
 
 # EXAMPLES
