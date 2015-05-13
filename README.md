@@ -6,15 +6,15 @@ Uses of this PAM module are:
 
 ## 1) 'Honey credentials'. 
 
-	Fake passwords are made available where they might be found by intruders. If they are ever used it may indicate a network compromise, and in this event pam_honeycreds can be set up to notify the network administrator. Given that people frequently forget/mistype their passwords, a simple 'failed login' alert will cause a lot of noise, and will eventually be ignored by the sysadmin. An actual match against a list of prohibitted passwords should be a clearer signal. Alternatively one can simply watch for passwords from any of the 'common passwords' lists that are available on the internet, in order to detect bruteforce attempts happening within your network.
+Fake passwords are made available where they might be found by intruders. If they are ever used it may indicate a network compromise, and in this event pam_honeycreds can be set up to notify the network administrator. Given that people frequently forget/mistype their passwords, a simple 'failed login' alert will cause a lot of noise, and will eventually be ignored by the sysadmin. An actual match against a list of prohibitted passwords should be a clearer signal. Alternatively one can simply watch for passwords from any of the 'common passwords' lists that are available on the internet, in order to detect bruteforce attempts happening within your network.
 
 ## 2) Watching for passwords appearing in brute-force attempts against web-facing servers.   
 
-	Anyone with internet-facing ssh, web or SMTP servers has seen bruteforce password-guessing attempts that run through a dictionary of stolen passwords. pam_honeycreds can be used to watch for your own passwords appearing in this list, either indicating that your password databases have been stolen, or that you've picked poor passwords.
+Anyone with internet-facing ssh, web or SMTP servers has seen bruteforce password-guessing attempts that run through a dictionary of stolen passwords. pam_honeycreds can be used to watch for your own passwords appearing in this list, either indicating that your password databases have been stolen, or that you've picked poor passwords.
 
 ## 3) Harvesting of passwords used by bruteforcers.
 
-	pam_honeycreds can be setup to log the passwords used by bruteforcers trying to break into your systems.
+pam_honeycreds can be setup to log the passwords used by bruteforcers trying to break into your systems.
 
 
 #BIG FAT WARNING
@@ -53,32 +53,32 @@ This specifies that, for user root, we should check for honeycreds in the file /
 Configuration options are:
 
 user=<user patterns>
- : Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to 'user=\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
+: Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to 'user=\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
 
 file=<path to creds file>
- : Comma separated list of files in which to check for matching passwords. File format is discussed below.
+: Comma separated list of files in which to check for matching passwords. File format is discussed below.
 
 syslog
- : Record events via syslog messages
+: Record events via syslog messages
 
 logcreds
- : If this option appears, then passwords will be logged in syslog messages, *but only if they do not appear in any of the file lists*. If your own passwords appear in the list files (as sha256 salted hashes, of course) they will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
+: If this option appears, then passwords will be logged in syslog messages, *but only if they do not appear in any of the file lists*. If your own passwords appear in the list files (as sha256 salted hashes, of course) they will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
 
 script=<path>
- : Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '<file path>:<line in file>', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
+: Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '<file path>:<line in file>', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
 
 allow
- : allow user to continue log in even if their password matches one of the file lists. This will not log a user in, but the default behavior is to refuse login. If 'allow' is set, then pam_honeycreds tells the calling application to ignore it, and carry on with normal login using other authentication modules. pam_honeycreds *NEVER*  returns 'PAM_SUCCESS', and so never autheticates a user, but it can explicitly deny a user. The default behavior is to allow authentication to continue if the password is not in any list, but to deny login if a match is found.
+: allow user to continue log in even if their password matches one of the file lists. This will not log a user in, but the default behavior is to refuse login. If 'allow' is set, then pam_honeycreds tells the calling application to ignore it, and carry on with normal login using other authentication modules. pam_honeycreds *NEVER*  returns 'PAM_SUCCESS', and so never autheticates a user, but it can explicitly deny a user. The default behavior is to allow authentication to continue if the password is not in any list, but to deny login if a match is found.
 
 denyall
- : deny all logins, whether a match is found or not. This is normally used against a user for whom we want to go through the authentication process, but whom we never wish to allow to log in. Applications like sshd allow us to specify which users can log in, but users not in this list are not properly processed through pam_honeycreds. Thus we configure sshd to allow login by any user, but use the 'denyall' option at the pam_honeycreds level to block certain users from logging in at all. So, if we want to monitor the users root and admin, but we never want to allow those users to log in, we might add this to the /etc/pam.d/sshd file:
+: deny all logins, whether a match is found or not. This is normally used against a user for whom we want to go through the authentication process, but whom we never wish to allow to log in. Applications like sshd allow us to specify which users can log in, but users not in this list are not properly processed through pam_honeycreds. Thus we configure sshd to allow login by any user, but use the 'denyall' option at the pam_honeycreds level to block certain users from logging in at all. So, if we want to monitor the users root and admin, but we never want to allow those users to log in, we might add this to the /etc/pam.d/sshd file:
 ```
 auth    required  pam_honeycreds.so user=root,admin syslog logcreds denyall file=/etc/honeycreds.lst script=/usr/local/bin/root-login.sh
 ```
 If a denyall rule has a script entry, then the script will be run for any event, even if no match is found within the credentials files. This allows triggering against some users (e.g. root) that should never login via some services (say, ssh).
 
 prompt=<prompt>
- : If pam_honeycreds is the first module in the stack to ask for the users password, then this will be the password prompt message that the user sees. The default is 'Password: '. Ideally, instead of using this option,  pam_honeycreds should appear in the pam module list *after* a module like pam_unix.so, so that the normal configured prompting proceedure is followed.
+: If pam_honeycreds is the first module in the stack to ask for the users password, then this will be the password prompt message that the user sees. The default is 'Password: '. Ideally, instead of using this option,  pam_honeycreds should appear in the pam module list *after* a module like pam_unix.so, so that the normal configured prompting proceedure is followed.
 
 
 # CREDENTIALS FILE FORMAT
@@ -86,10 +86,10 @@ prompt=<prompt>
 The credentials to watch for are stored in text-files as one credential-per-line in either plaintext or as sha256 hashes. A few options can appear on the same line after the credential. Options are separated with a single space. Options are:
 
 salt=<salt>
- : A string that is prepended to the credential before hashing. This is intended to complicate the use of 'rainbow tables', which are pregenerated tables of hashes for all popular passwords, as the rainbow table must now be built for all possible random strings that could be prefixed to the password.
+: A string that is prepended to the credential before hashing. This is intended to complicate the use of 'rainbow tables', which are pregenerated tables of hashes for all popular passwords, as the rainbow table must now be built for all possible random strings that could be prefixed to the password.
 
 user=<user pattern>
- : An fnmatch pattern that matches usernames *for which this string is actually the password*. This will suppress the creation of an event, or any logging, or running of a script for this user (unless 'denyall' is set, in which case a script will run if it is provided).
+: An fnmatch pattern that matches usernames *for which this string is actually the password*. This will suppress the creation of an event, or any logging, or running of a script for this user (unless 'denyall' is set, in which case a script will run if it is provided).
 
 
 # EXAMPLES
@@ -107,6 +107,13 @@ Do all the above, except match against 3 users (root, admin and mail) and check 
 ```
 auth	required  pam_honeycreds.so user=root,admin,mail syslog logcreds denyall file=/etc/mypasswords.txt script=/usr/local/bin/root-login.sh
 ```
+
+
+Deny login for any user, log all passwords (effectively a honeypot)
+```
+auth required pam_honeycreds.so syslog logcreds denyall
+```
+
 
 For any user other than root, log passwords, allow login, check for creds in the files /etc/honeycreds.conf and /etc/10k-common-passwords.txt. Run script /usr/local/bin/honeycreds-match.sh upon finding a match
 ```
@@ -141,3 +148,8 @@ _Salted hash format with specified usernames (users named 'localXXX' where 'XXX'
 ```
 9ea9803cd51b6b393149daf9f777d089c286a0c610c56979364a41ccf2cbdce1 salt=230400 user=local[0-9][0-9][0-9]
 ```
+
+# CONFIG FOR SSHD
+
+SSHD must be compiled with the --with-pam configuration option, and the 'UsePAM' option must be set to 'yes' in the sshd_config file. It will only pass passwords for user-accounts that are allowed to log in with ssh, so if you want to monitor accounts that are not allowed to login, you have to set them to be allowed at the ssh level, and then use 'denyall' to block them within the pam_honeycreds configuration. 
+
