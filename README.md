@@ -52,10 +52,10 @@ This specifies that, for user root, we should check for honeycreds in the file /
 
 Configuration options are:
 
-user=<user patterns>
+user=[user patterns]
 : Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to 'user=\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
 
-file=<path to creds file>
+file=[path to creds file]
 : Comma separated list of files in which to check for matching passwords. File format is discussed below.
 
 syslog
@@ -64,8 +64,8 @@ syslog
 logcreds
 : If this option appears, then passwords will be logged in syslog messages, *but only if they do not appear in any of the file lists*. If your own passwords appear in the list files (as sha256 salted hashes, of course) they will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
 
-script=<path>
-: Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '<file path>:<line in file>', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
+script=[path]
+: Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '[file path]:[line in file]', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
 
 allow
 : allow user to continue log in even if their password matches one of the file lists. This will not log a user in, but the default behavior is to refuse login. If 'allow' is set, then pam_honeycreds tells the calling application to ignore it, and carry on with normal login using other authentication modules. pam_honeycreds *NEVER*  returns 'PAM_SUCCESS', and so never autheticates a user, but it can explicitly deny a user. The default behavior is to allow authentication to continue if the password is not in any list, but to deny login if a match is found.
@@ -77,7 +77,7 @@ auth    required  pam_honeycreds.so user=root,admin syslog logcreds denyall file
 ```
 If a denyall rule has a script entry, then the script will be run for any event, even if no match is found within the credentials files. This allows triggering against some users (e.g. root) that should never login via some services (say, ssh).
 
-prompt=<prompt>
+prompt=[prompt]
 : If pam_honeycreds is the first module in the stack to ask for the users password, then this will be the password prompt message that the user sees. The default is 'Password: '. Ideally, instead of using this option,  pam_honeycreds should appear in the pam module list *after* a module like pam_unix.so, so that the normal configured prompting proceedure is followed.
 
 
@@ -85,10 +85,10 @@ prompt=<prompt>
 
 The credentials to watch for are stored in text-files as one credential-per-line in either plaintext or as sha256 hashes. A few options can appear on the same line after the credential. Options are separated with a single space. Options are:
 
-salt=<salt>
+salt=[salt]
 : A string that is prepended to the credential before hashing. This is intended to complicate the use of 'rainbow tables', which are pregenerated tables of hashes for all popular passwords, as the rainbow table must now be built for all possible random strings that could be prefixed to the password.
 
-user=<user pattern>
+user=[user pattern]
 : An fnmatch pattern that matches usernames *for which this string is actually the password*. This will suppress the creation of an event, or any logging, or running of a script for this user (unless 'denyall' is set, in which case a script will run if it is provided).
 
 
