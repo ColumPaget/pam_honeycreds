@@ -29,7 +29,7 @@
 #define FLAG_ALLOW 4
 #define FLAG_DENYALL 8
 #define FLAG_LOGPASS 16
-#define FLAG_LOGUNKNOWN 32
+#define FLAG_FAILS 32
 
 typedef struct
 {
@@ -106,6 +106,11 @@ if (Settings->Flags & FLAG_SYSLOG)
 	{
 	case MATCH_NO:
 		if (Settings->Flags & FLAG_LOGPASS) syslog(LOG_NOTICE, "user=[%s] pass=[%s] rhost=[%s]",Settings->PamUser, AuthTok, Settings->PamHost);
+	if (Settings->Flags & FLAG_FAILS)
+	{
+		syslog(LOG_NOTICE, "Attempt to login using wrong password user=[%s] rhost=[%s]", Settings->PamUser, Settings->PamHost);
+		RunScript(Settings, "FAIL", "");
+	}
 	break;
 
 	case MATCH_WRONG_USER:
@@ -292,6 +297,7 @@ int i;
 		if (strcmp(ptr,"syslog")==0) Settings->Flags |= FLAG_SYSLOG;
 		else if (strcmp(ptr,"logcreds")==0) Settings->Flags |= FLAG_LOGPASS;
 		else if (strcmp(ptr,"allow")==0) Settings->Flags |= FLAG_ALLOW;
+		else if (strcmp(ptr,"fails")==0) Settings->Flags |= FLAG_FAILS;
 		else if (strcmp(ptr,"denyall")==0) Settings->Flags |= FLAG_DENYALL;
 		else if (strncmp(ptr,"user=",5)==0) Settings->User=MCatStr(Settings->User, ptr+5, ",", NULL);
 		else if (strncmp(ptr,"file=",5)==0) Settings->CredsFile=MCatStr(Settings->CredsFile, ptr+5, ",", NULL);

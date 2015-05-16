@@ -196,31 +196,37 @@ if ((*ptr=='"') || (*ptr=='\''))
 //I don't trust strtok, it's not reentrant, and this handles quotes
 const char *GetTok(const char *In, char Delim, char **Token)
 {
-char quot;
+char quot='\0';
 const char *ptr;
-int len;
+int i=0;
 
+*Token=realloc(*Token,258);
 //When input is exhausted return null
 if ((! In) || (*In=='\0')) return(NULL);
 
-*Token=CopyStr(*Token,"");
-for (ptr=In; *ptr !='\0'; ptr++)
+for (ptr=In; *ptr != '\0'; ptr++)
 {
-	if (*ptr==Delim) break;
-	else if ((*ptr=='"') || (*ptr=='\''))
+	if (*ptr=='\0') break;
+
+	if (quot != '\0') 
 	{
-		quot=*ptr;
-		ptr++;
-		while ((*ptr != quot) && (*ptr != '\0')) ptr++;
+		if (*ptr==quot) quot='\0';
 	}
+	else if ((*ptr=='"') || (*ptr=='\'')) quot=*ptr;
+	else if (*ptr==Delim) break;
+	else 
+	{
+		if (*ptr=='\\') ptr++;
+		(*Token)[i]=*ptr;
+		i++;
+	}
+	if (i > 256) break;
 }
 
-
-len=ptr-In;
-*Token=(char *) realloc(*Token, len+1);
-strncpy(*Token,In,len);
-(*Token)[len]='\0';
+(*Token)[i]='\0';
 StripQuotes(*Token);
+
+printf("GT: [%s]\n",*Token);
 
 //if it's not '\0', then it must be a delim, so go past it
 if (*ptr !='\0') ptr++;

@@ -1,0 +1,98 @@
+.TH  pam_honeycreds  8 " 2015/05/15"
+.SH NAME
+
+.P
+pam_honeycreds - Use usbkeys as authentication tokens.
+.SH SYNOPSIS
+
+
+.nf
+
+pam_honeycreds.so [user=<username>] [file=<path to creds file>] [syslog] [logcreds] [allow|denyall] [fails] [prompt=<prompt>]
+.fi
+.ad b
+.SH DESCRIPTION
+
+.P
+pam_honeycreds.so is a PAM (Pluggable Authentication Modules) module that watches for certain passwords being used. A list of passwords can be stored either in cleartext or as a list of salted sha256 hashes. It can also log passwords that do not match any list, but will NEVER log passwords that are in a list, instead reporting them by file and line. In addition to logging events, a script can be run when a password is matched. It is intended for use with 'honey credentials' (fake passwords made available to catch malicious actors within an environment) or with lists of common passwords (to detect bruteforcers) or to detect real passwords turning up where they shouldn't.
+.SH OPTIONS
+
+.P
+PAM options that can be applied to configuration files in /etc/pam.d are as follows.
+.TP
+.B
+\fIuser=[user patterns]\fP
+Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitlyoot' it to 'user=\\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
+
+.TP
+.B
+\fIfile=[path to creds file]\fP
+Comma separated list of files in which to check for matching passwords. File format is discussed below.
+
+.TP
+.B
+\fIsyslog\fP
+Record events via syslog messages
+
+.TP
+.B
+\fIlogcreds\fP
+If this option appears, then passwords will be logged in syslog messages, \fIbut only if they do not appear in any of the file lists\fP. If your own passwords appear in the list files (as sha256 salted hashes, of coursehem.ey will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
+
+.TP
+.B
+\fIscript=[path]\fP
+Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '[file path]:[l in.in file]', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
+
+.TP
+.B
+\fIallow\fP
+Allow user to continue log in even if their password matches one of the file lists. This will not log a user in, but the default behavior is to refuse login. If 'allow' is set, then pam\fBhoneycreds tells the calling application to ignore it, and carry on with normal login using other authentication modules. pam\fPhoneycreds \fINEVER\fP  returns 'PAM_SUCCESS', and so never autheticates a user, but it can explicitly deny a user. Thund.fault behavior is to allow authentication to continue if the password is not in any list, but to deny login if a match is found.
+
+.TP
+.B
+\fIfails\fP
+Log and run 'script' for all passwords that are \fInot\fP in any list. This can be used to monitor particular account names for password-guessing activity.
+
+.TP
+.B
+\fIdenyall\fP
+Deny all logins, whether a match is found or not. This is normally used against a user for whom we want to go through the authentication process, but whom we never wish to allow to log in. Applications like sshd allow us to specify which users can log in, but users not in this list are not properly processed through pam\fBhoneycreds. Thus we configure sshd to allow login by any user, but use the 'denyall' option at the pam\fPhoneycreds level to block certain users from logging in at all. If a denyall rule has a script entry, then the script will be run for any event, even if no match is found within the credentials files. This allows triggering against some users (e.g. root) that should never login via some services (say, ssh).
+
+e2-honeycreds should appear in the pam module list \fIafter\fP a module like pam_unix.so, so that the normal configured prompting proceedure is followed.
+
+.SH CREDENTIAL FILE CONFIG
+
+.P
+pam_honeycreds uses credentials files that contain one password per line. Passwords containing spaces can be enclosed in quotes or the spaces can be quoted with a \\ (backslash) character. Passwords can either be stored in plain-text (if they're fake) or as sha256 hashes of the password combined with a salt (the salt is simply prefixed to the password, and the resulting string is then hashed). The format of the password file is:
+
+.nf
+
+<password> [salt=<salt>] [user=<user>]
+.fi
+.ad b
+.P
+The user option is a comma-separated list of fnmatch patterns that match usernames who are \fIallowed\fP to use this password. This is used to raise an error if a user not in the list uses this password. 
+.SH EXAMPLES
+
+.P
+An example PAM config file in /etc/pam.d might look like the example below. 
+
+.nf
+
+#%PAM\-1.0
+auth    include   system\-auth
+auth    required  pam_honeycreds.so user=root syslog logcreds denyall file=/etc/mypasswords.conf
+auth    required  pam_honeycreds.so user=!root syslog logcreds allow file=/etc/mypasswords.conf /etc/10\-common\-passwords.txt script=/usr/local/sbin/warn\-admin.sh
+auth    required  pam_honeycreds.so user=user* syslog fails file=/etc/honeycreds.conf script=/usr/local/sbin/honeycreds.sh
+account   required  pam_nologin.so
+account   include   system\-auth
+password  include   system\-auth
+session   include   system\-auth
+session   required  pam_loginuid.so
+.fi
+.ad b
+.SH SEE ALSO
+
+.P
+pam.conf(5), pam.d(5), pam(8)
