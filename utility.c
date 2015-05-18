@@ -226,8 +226,6 @@ for (ptr=In; *ptr != '\0'; ptr++)
 (*Token)[i]='\0';
 StripQuotes(*Token);
 
-printf("GT: [%s]\n",*Token);
-
 //if it's not '\0', then it must be a delim, so go past it
 if (*ptr !='\0') ptr++;
 
