@@ -1,6 +1,6 @@
 AC_INIT([pam_module.c])
 
-VERSION="0.0.1" 
+VERSION="1.1" 
 AC_SUBST(VERSION) 
 AC_PREFIX_DEFAULT([/]) 
 

@@ -9,7 +9,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#define VERSION "1.0"
+#define VERSION "1.1"
 #define FALSE 0
 #define TRUE 1
 
