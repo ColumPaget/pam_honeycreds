@@ -26,7 +26,7 @@
 #define MATCH_VALID 4
 
 #define FLAG_SYSLOG  1
-#define FLAG_ALLOW 4
+#define FLAG_DENY 4
 #define FLAG_DENYALL 8
 #define FLAG_LOGPASS 16
 #define FLAG_FAILS 32
@@ -115,8 +115,8 @@ if (Settings->Flags & FLAG_SYSLOG)
 	case MATCH_WRONG_USER:
 		//Here we deny or allow a *match*. FLAG_DENYALL Denies everything, even non-matches that might be authenticated by another
 		//module
-		if (Settings->Flags & FLAG_ALLOW) PamResult=PAM_IGNORE;
-		else PamResult=PAM_PERM_DENIED;
+		if (Settings->Flags & FLAG_DENY) PamResult=PAM_PERM_DENIED;
+		else PamResult=PAM_IGNORE;
 
 		syslog(LOG_NOTICE, "pam_honeycreds: WRONG USER: Attempt to login using password in [%s]. user=[%s] rhost=[%s]",FoundFiles, Settings->PamUser, Settings->PamHost);
 		RunScript(Settings, "WrongUser", FoundFiles);
@@ -125,8 +125,9 @@ if (Settings->Flags & FLAG_SYSLOG)
 	case MATCH_YES:
 		//Here we deny or allow a *match*. FLAG_DENYALL Denies everything, even non-matches that might be authenticated by another
 		//module
-		if (Settings->Flags & FLAG_ALLOW) PamResult=PAM_IGNORE;
-		else PamResult=PAM_PERM_DENIED;
+		if (Settings->Flags & FLAG_DENY) PamResult=PAM_PERM_DENIED;
+		else PamResult=PAM_IGNORE;
+
 
 		syslog(LOG_NOTICE, "pam_honeycreds: Attempt to login using password in [%s]. user=[%s] rhost=[%s]",FoundFiles, Settings->PamUser, Settings->PamHost);
 		RunScript(Settings, "Match", FoundFiles);
@@ -289,7 +290,7 @@ int i;
 		ptr=argv[i];
 		if (strcmp(ptr,"syslog")==0) Settings->Flags |= FLAG_SYSLOG;
 		else if (strcmp(ptr,"logcreds")==0) Settings->Flags |= FLAG_LOGPASS;
-		else if (strcmp(ptr,"allow")==0) Settings->Flags |= FLAG_ALLOW;
+		else if (strcmp(ptr,"deny")==0) Settings->Flags |= FLAG_DENY;
 		else if (strcmp(ptr,"fails")==0) Settings->Flags |= FLAG_FAILS;
 		else if (strcmp(ptr,"denyall")==0) Settings->Flags |= FLAG_DENYALL;
 		else if (strncmp(ptr,"user=",5)==0) Settings->User=MCatStr(Settings->User, ptr+5, ",", NULL);
