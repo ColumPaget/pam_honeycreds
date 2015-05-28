@@ -8,7 +8,7 @@ pam_honeycreds - Use usbkeys as authentication tokens.
 
 .nf
 
-pam_honeycreds.so [user=<username>] [file=<path to creds file>] [syslog] [logcreds] [allow|denyall] [fails] [prompt=<prompt>]
+pam_honeycreds.so [user=<username>] [file=<path to creds file>] [syslog] [logcreds] [deny|denyall] [fails] [prompt=<prompt>]
 .fi
 .ad b
 .SH DESCRIPTION
@@ -46,8 +46,8 @@ Run script in the event of a match. Arguments passed to the script will be 'Even
 
 .TP
 .B
-\fIallow\fP
-Allow user to continue log in even if their password matches one of the file lists. This will not log a user in, but the default behavior is to refuse login. If 'allow' is set, then pam\fBhoneycreds tells the calling application to ignore it, and carry on with normal login using other authentication modules. pam\fPhoneycreds \fINEVER\fP  returns 'PAM_SUCCESS', and so never autheticates a user, but it can explicitly deny a user. Thund.fault behavior is to allow authentication to continue if the password is not in any list, but to deny login if a match is found.
+\fIdeny\fP
+Deny login if a password matches one of the file lists. 
 
 .TP
 .B
@@ -83,7 +83,7 @@ An example PAM config file in /etc/pam.d might look like the example below.
 #%PAM\-1.0
 auth    include   system\-auth
 auth    required  pam_honeycreds.so user=root syslog logcreds denyall file=/etc/mypasswords.conf
-auth    required  pam_honeycreds.so user=!root syslog logcreds allow file=/etc/mypasswords.conf /etc/10\-common\-passwords.txt script=/usr/local/sbin/warn\-admin.sh
+auth    required  pam_honeycreds.so user=!root syslog logcreds file=/etc/mypasswords.conf /etc/10\-common\-passwords.txt script=/usr/local/sbin/warn\-admin.sh
 auth    required  pam_honeycreds.so user=user* syslog fails file=/etc/honeycreds.conf script=/usr/local/sbin/honeycreds.sh
 account   required  pam_nologin.so
 account   include   system\-auth

@@ -67,8 +67,9 @@ If this option appears, then passwords will be logged in syslog messages, *but o
 **script=[path]**  
 Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '[file path]:[line in file]', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
 
-**allow**  
-Allow user to continue log in even if their password matches one of the file lists. This will not log a user in, but the default behavior is to refuse login. If 'allow' is set, then pam_honeycreds tells the calling application to ignore it, and carry on with normal login using other authentication modules. pam_honeycreds *NEVER*  returns 'PAM_SUCCESS', and so never autheticates a user, but it can explicitly deny a user. The default behavior is to allow authentication to continue if the password is not in any list, but to deny login if a match is found.
+**deny**  
+Deny user to continue log in if their password matches one of the file lists. 
+
 
 **fails**
 Log and run 'script' for all passwords that are *not* in any list. This can be used to monitor particular account names for password-guessing activity.
@@ -120,13 +121,13 @@ auth required pam_honeycreds.so syslog logcreds denyall
 
 For any user other than root, log passwords, allow login, check for creds in the files /etc/honeycreds.conf and /etc/10k-common-passwords.txt. Run script /usr/local/bin/honeycreds-match.sh upon finding a match
 ```
-auth	required  pam_honeycreds.so user=!root syslog logcreds allow file=/etc/honeycreds.conf,/etc/10k-common-passwords.txt script=/usr/local/bin/honeycreds-match.sh
+auth	required  pam_honeycreds.so user=!root syslog logcreds file=/etc/honeycreds.conf,/etc/10k-common-passwords.txt script=/usr/local/bin/honeycreds-match.sh
 ```
 
 
 For user 'admin' monitor against /etc/honeycreds.conf, but never log actual passwords
 ```
-auth	required pam_honeycreds.so user=admin syslog allow file=/etc/honeycreds.conf
+auth	required pam_honeycreds.so user=admin syslog file=/etc/honeycreds.conf
 ```
 
 ## Credentials files examples
