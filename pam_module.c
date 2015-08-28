@@ -375,7 +375,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 		{
 			syslog(LOG_NOTICE, "pam_honeycreds: DENY: user=[%s] rhost=[%s]",Settings->PamUser, Settings->PamHost);
 		 	PamResult=PAM_PERM_DENIED;
-			if ((val==MATCH_NO) && StrLen(Settings->Script)) system(Settings->Script);	
+			if ((val==MATCH_NO) && StrLen(Settings->Script)) RunScript(Settings, "DENY", "");
 		}
 	}
 
