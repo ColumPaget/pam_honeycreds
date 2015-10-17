@@ -30,6 +30,8 @@
 #define FLAG_DENYALL 8
 #define FLAG_LOGPASS 16
 #define FLAG_FAILS 32
+#define FLAG_NOTUSER 64
+#define FLAG_NOTHOST 128
 
 typedef struct
 {
@@ -37,6 +39,7 @@ int Flags;
 char *Prompt;
 char *CredsFile;
 char *User;
+char *Host;
 char *PamUser;
 char *PamHost;
 char *PamTTY;
@@ -294,6 +297,17 @@ int i;
 		else if (strcmp(ptr,"fails")==0) Settings->Flags |= FLAG_FAILS;
 		else if (strcmp(ptr,"denyall")==0) Settings->Flags |= FLAG_DENYALL;
 		else if (strncmp(ptr,"user=",5)==0) Settings->User=MCatStr(Settings->User, ptr+5, ",", NULL);
+		else if (strncmp(ptr,"host=",5)==0) Settings->Host=MCatStr(Settings->Host, ptr+5, ",", NULL);
+		else if (strncmp(ptr,"!user=",6)==0) 
+		{
+			Settings->Flags |= FLAG_NOTUSER;
+			Settings->User=MCatStr(Settings->User, ptr+6, ",", NULL);
+		}
+		else if (strncmp(ptr,"!host=",6)==0) 
+		{
+			Settings->Flags |= FLAG_NOTHOST;
+			Settings->Host=MCatStr(Settings->Host, ptr+6, ",", NULL);
+		}
 		else if (strncmp(ptr,"file=",5)==0) Settings->CredsFile=MCatStr(Settings->CredsFile, ptr+5, ",", NULL);
 		else if (strncmp(ptr,"prompt=",7)==0) Settings->Prompt=MCatStr(Settings->Prompt, ptr+7, ":", NULL);
 		else if (strncmp(ptr,"script=",7)==0) Settings->Script=MCopyStr(Settings->Script, ptr+7, NULL);
@@ -301,6 +315,46 @@ int i;
 
 return(Settings);
 }
+
+
+
+
+int HostMatches(TSettings *Settings)
+{
+if (! StrLen(Settings->Host)) return(TRUE);
+
+if (Settings->Flags & FLAG_NOTHOST)
+{
+	if (! ItemMatches(Settings->PamHost, Settings->Host)) return(TRUE);
+}
+else
+{
+	if (ItemMatches(Settings->PamHost, Settings->Host)) return(TRUE);
+}
+
+return(FALSE);
+}
+
+
+int UserMatches(TSettings *Settings)
+{
+if (! StrLen(Settings->User)) return(TRUE);
+
+if (Settings->Flags & FLAG_NOTUSER)
+{
+	if (! ItemMatches(Settings->PamUser, Settings->User)) return(TRUE);
+}
+else
+{
+	if (ItemMatches(Settings->PamUser, Settings->User)) return(TRUE);
+}
+
+return(FALSE);
+}
+
+
+
+
 
 
 // PAM entry point for authentication. This function gets called by pam when
@@ -351,12 +405,10 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 
 
 
-	Settings=ParseSettings(argc, argv);
-	Settings->PamUser=CopyStr(Settings->PamUser,pam_user);
-	Settings->PamHost=CopyStr(Settings->PamHost,pam_rhost);
-
 	//get the cached authentication token (password) or prompt for one if one is not already cached.
 	//Final argument is the prompt to use.
+	//pam_get_authtok(pamh, PAM_AUTHTOK, &pam_authtok, Settings->Prompt);
+
 	if (pam_get_item(pamh, PAM_AUTHTOK, (const void **) &pam_authtok) != PAM_SUCCESS) 
 	{
 		syslog(LOG_ERR,"pam_honeycreds: Failed to get pam_authtok");
@@ -364,9 +416,18 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 		return(PAM_IGNORE);
 	}
 
-//	pam_get_authtok(pamh, PAM_AUTHTOK, &pam_authtok, Settings->Prompt);
 
-	if ((! StrLen(Settings->User)) || ItemMatches(Settings->PamUser, Settings->User))
+	Settings=ParseSettings(argc, argv);
+	Settings->PamUser=CopyStr(Settings->PamUser,pam_user);
+	Settings->PamHost=CopyStr(Settings->PamHost,pam_rhost);
+
+	//Host matches checks if we've been explicitly told to ignore this host, or only consider certain hosts
+	if (! HostMatches(Settings))
+	{
+			syslog(LOG_NOTICE, "pam_honeycreds: IGNORE: user=[%s] rhost=[%s]",Settings->PamUser, Settings->PamHost);
+			PamResult=PAM_IGNORE;	
+	}
+	else if (UserMatches(Settings))
 	{
 		val=ListFilesCheck(Settings, Settings->PamUser, pam_authtok, Settings->PamHost, &FoundFiles);
 		PamResult=ProcessResult(Settings, pam_authtok, FoundFiles, val);

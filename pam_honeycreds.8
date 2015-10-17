@@ -2,7 +2,7 @@
 .SH NAME
 
 .P
-pam_honeycreds - Use usbkeys as authentication tokens.
+pam_honeycreds - Monitor for certain passwords being tried at logon, and/or capture passwords being tried.
 .SH SYNOPSIS
 
 
@@ -22,7 +22,22 @@ PAM options that can be applied to configuration files in /etc/pam.d are as foll
 .TP
 .B
 \fIuser=[user patterns]\fP
-Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitlyoot' it to 'user=\\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
+Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to 'user=\\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'. You CAN mix usernames with and without a leading '!' in a user list, so for instance user=!billing,bill* would match all usernames starting with 'bill' except for 'billing'.
+
+.TP
+.B
+\fI!user=[user patterns]\fP
+Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule DOES NOT APPLY. Note that this is different from putting a ! before a user in a 'user=' list, using the !user= keyword means all listed users are ignored by this rule. You CANNOT MIX user= and !user= in the same PAM entry, you must use one or the other to specify which users apply or don't.
+
+.TP
+.B
+\fIhost=[host patterns]\fP
+Comma separated list of fnmatch (shell-style) patterns that identify hosts for which this rule applies. To match all hosts either leave this out, leave it blank, or explicitly set it to 'host=\\*'. A '!' character at the start of the pattern allows inversion, so to match all hosts but 192.168.1.1 use: 'host=!192.168.1.1'. Check whether your software is configured to supply host credentials to PAM as hostnames or IP addresses.
+
+.TP
+.B
+\fI!host=[host patterns]\fP
+Comma separated list of fnmatch (shell-style) patterns that identify hosts for which this rule DOES NOT APPLY. Note that this is different from putting a ! before a host in a 'host=' list, using the !host= keyword means all listed hosts are ignored by this rule. You CANNOT MIX host= and !host= in the same PAM entry, you must use one or the other to specify which hosts apply or don't. Check whether your software is configured to supply host credentials to PAM as hostnames or IP addresses.
 
 .TP
 .B
@@ -32,17 +47,17 @@ Comma separated list of files in which to check for matching passwords. File for
 .TP
 .B
 \fIsyslog\fP
-Record events via syslog messages
+Record events via syslog messages. You probably want to do this if you intend to 'harvest' lists of passwords tried by your attackers, in which case you need to set 'logcreds' too.
 
 .TP
 .B
 \fIlogcreds\fP
-If this option appears, then passwords will be logged in syslog messages, \fIbut only if they do not appear in any of the file lists\fP. If your own passwords appear in the list files (as sha256 salted hashes, of coursehem.ey will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
+If this option appears, then passwords will be logged in syslog messages, \fIbut only if they do not appear in any of the file lists\fP. If your own passwords appear in the list files (as sha256 salted hashes, of course). They will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
 
 .TP
 .B
 \fIscript=[path]\fP
-Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '[file path]:[l in.in file]', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
+Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '[file path]:[line in file]', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
 
 .TP
 .B
@@ -59,7 +74,7 @@ Log and run 'script' for all passwords that are \fInot\fP in any list. This can 
 \fIdenyall\fP
 Deny all logins, whether a match is found or not. This is normally used against a user for whom we want to go through the authentication process, but whom we never wish to allow to log in. Applications like sshd allow us to specify which users can log in, but users not in this list are not properly processed through pam\fBhoneycreds. Thus we configure sshd to allow login by any user, but use the 'denyall' option at the pam\fPhoneycreds level to block certain users from logging in at all. If a denyall rule has a script entry, then the script will be run for any event, even if no match is found within the credentials files. This allows triggering against some users (e.g. root) that should never login via some services (say, ssh).
 
-e2-honeycreds should appear in the pam module list \fIafter\fP a module like pam_unix.so, so that the normal configured prompting proceedure is followed.
+pam_honeycreds should appear in the pam module list \fIafter\fP a module like pam_unix.so, so that the normal configured prompting proceedure is followed.
 
 .SH CREDENTIAL FILE CONFIG
 
