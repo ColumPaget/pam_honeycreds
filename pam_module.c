@@ -185,6 +185,7 @@ char *Hash=NULL;
 const char *ptr;
 int result=MATCH_NO, val;
 
+	if (! Pass) return(MATCH_NO);
 	if (strcasecmp(Pass, Cred->Pass)==0) result=MATCH_YES;
 	else
 	{ 
