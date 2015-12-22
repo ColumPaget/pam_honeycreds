@@ -101,18 +101,19 @@ int ProcessResult(TSettings *Settings, const char *AuthTok, const char *FoundFil
 {
 int PamResult=PAM_IGNORE;
 
-if (Settings->Flags & FLAG_SYSLOG) 
+switch (Result)
 {
-
-	switch (Result)
-	{
 	case MATCH_NO:
-		if (Settings->Flags & FLAG_LOGPASS) syslog(LOG_NOTICE, "pam_honeycreds: user=[%s] pass=[%s] rhost=[%s]",Settings->PamUser, AuthTok, Settings->PamHost);
-	if (Settings->Flags & FLAG_FAILS)
-	{
-		syslog(LOG_NOTICE, "pam_honeycreds: Attempt to login using wrong password user=[%s] rhost=[%s]", Settings->PamUser, Settings->PamHost);
+		if (Settings->Flags & FLAG_LOGPASS) 
+		{
+			if (Settings->Flags & FLAG_SYSLOG) syslog(LOG_NOTICE, "pam_honeycreds: user=[%s] pass=[%s] rhost=[%s]",Settings->PamUser, AuthTok, Settings->PamHost);
+		}
+
+		if (Settings->Flags & FLAG_FAILS)
+		{
+			if (Settings->Flags & FLAG_SYSLOG) syslog(LOG_NOTICE, "pam_honeycreds: Attempt to login using wrong password user=[%s] rhost=[%s]", Settings->PamUser, Settings->PamHost);
 		RunScript(Settings, "FAIL", "");
-	}
+		}
 	break;
 
 	case MATCH_WRONG_USER:
@@ -121,7 +122,7 @@ if (Settings->Flags & FLAG_SYSLOG)
 		if (Settings->Flags & FLAG_DENY) PamResult=PAM_PERM_DENIED;
 		else PamResult=PAM_IGNORE;
 
-		syslog(LOG_NOTICE, "pam_honeycreds: WRONG USER: Attempt to login using password in [%s]. user=[%s] rhost=[%s]",FoundFiles, Settings->PamUser, Settings->PamHost);
+		if (Settings->Flags & FLAG_SYSLOG) syslog(LOG_NOTICE, "pam_honeycreds: WRONG USER: Attempt to login using password in [%s]. user=[%s] rhost=[%s]",FoundFiles, Settings->PamUser, Settings->PamHost);
 		RunScript(Settings, "WrongUser", FoundFiles);
 	break;
 
@@ -131,19 +132,16 @@ if (Settings->Flags & FLAG_SYSLOG)
 		if (Settings->Flags & FLAG_DENY) PamResult=PAM_PERM_DENIED;
 		else PamResult=PAM_IGNORE;
 
-
-		syslog(LOG_NOTICE, "pam_honeycreds: Attempt to login using password in [%s]. user=[%s] rhost=[%s]",FoundFiles, Settings->PamUser, Settings->PamHost);
+		if (Settings->Flags & FLAG_SYSLOG) syslog(LOG_NOTICE, "pam_honeycreds: Attempt to login using password in [%s]. user=[%s] rhost=[%s]",FoundFiles, Settings->PamUser, Settings->PamHost);
 		RunScript(Settings, "Match", FoundFiles);
 	break;
 
 	case MATCH_VALID:
 		//do nothing
 	break;
-	}
-
-	closelog();
 }
 
+if (Settings->Flags & FLAG_SYSLOG) closelog();
 
 return(PamResult);
 }
@@ -355,6 +353,47 @@ return(FALSE);
 
 
 
+char *PAMGetAuthtok(char *RetStr, pam_handle_t *pamh, const char *Prompt)
+{
+struct pam_conv *conv;
+struct pam_message msg;
+const struct pam_message *msgp;
+struct pam_response *resp=NULL;
+const char *pam_authtok;
+
+RetStr=CopyStr(RetStr,"");
+
+//This gets a 'cached' authtoken (password). On some systems (OpenPAM) it should handle
+//the pam conversation too. The password is a constant string in the PAM environment, so
+//it does not need to be freed. We return a copy of it instead.
+if (pam_get_item(pamh, PAM_AUTHTOK, (const void **) &pam_authtok) == PAM_SUCCESS) 
+{
+	if (StrLen(pam_authtok)) return(CopyStr(RetStr,pam_authtok));
+}
+
+//if the above pam_get_item returned nothing, then we'll have to try doing the pam
+//conversation 'by hand'.
+
+#ifndef OPENPAM
+if (pam_get_item(pamh, PAM_CONV, (const void **)&conv) != PAM_SUCCESS) return;
+
+msg.msg_style = PAM_PROMPT_ECHO_OFF;
+msg.msg = Prompt;
+msgp = &msg;
+
+if ((*conv->conv)(1, &msgp, &resp, conv->appdata_ptr) == PAM_SUCCESS) RetStr=CopyStr(RetStr, resp->resp);
+
+if (resp)
+{
+	Destroy(resp->resp);
+	Destroy(resp);
+}
+#endif
+
+return(RetStr);
+}
+
+
 
 
 
@@ -372,7 +411,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 	//These are defined as 'const char' because they passwd to us from the parent
 	//library. When we called pam_get_<whatever> the pam library passes pointers
 	//to strings in it's own code. Thus we must not change or free them
-	const char *pam_user = NULL, *pam_service=NULL, *pam_rhost=NULL, *pam_authtok=NULL;
+	const char *pam_user = NULL, *pam_service=NULL, *pam_rhost=NULL;
+	char *pam_authtok=NULL;
 
 
 	//get the user. If something goes wrong we return PAM_IGNORE. This tells
@@ -405,18 +445,20 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 	}
 
 
-
+/*
 	//get the cached authentication token (password) or prompt for one if one is not already cached.
 	//Final argument is the prompt to use.
 	//pam_get_authtok(pamh, PAM_AUTHTOK, &pam_authtok, Settings->Prompt);
 
-	if (pam_get_item(pamh, PAM_AUTHTOK, (const void **) &pam_authtok) != PAM_SUCCESS) 
+  if (pam_get_item(pamh, PAM_AUTHTOK, (const void **) &pam_authtok) != PAM_SUCCESS) 
 	{
 		syslog(LOG_ERR,"pam_honeycreds: Failed to get pam_authtok");
 		closelog();
 		return(PAM_IGNORE);
 	}
+*/
 
+	pam_authtok=PAMGetAuthtok(pam_authtok, pamh, Settings->Prompt);
 
 	Settings=ParseSettings(argc, argv);
 	Settings->PamUser=CopyStr(Settings->PamUser,pam_user);
@@ -444,6 +486,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 	closelog();
 	Destroy(Settings);
 	Destroy(Tempstr);
+	Destroy(pam_authtok);
 
   return(PamResult);
 }
