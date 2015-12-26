@@ -359,7 +359,7 @@ struct pam_conv *conv;
 struct pam_message msg;
 const struct pam_message *msgp;
 struct pam_response *resp=NULL;
-const char *pam_authtok;
+const char *pam_authtok=NULL;
 
 RetStr=CopyStr(RetStr,"");
 
@@ -375,13 +375,16 @@ if (pam_get_item(pamh, PAM_AUTHTOK, (const void **) &pam_authtok) == PAM_SUCCESS
 //conversation 'by hand'.
 
 #ifndef OPENPAM
-if (pam_get_item(pamh, PAM_CONV, (const void **)&conv) != PAM_SUCCESS) return;
+if (pam_get_item(pamh, PAM_CONV, (const void **)&conv) != PAM_SUCCESS) return(RetStr);
 
 msg.msg_style = PAM_PROMPT_ECHO_OFF;
 msg.msg = Prompt;
 msgp = &msg;
 
-if ((*conv->conv)(1, &msgp, &resp, conv->appdata_ptr) == PAM_SUCCESS) RetStr=CopyStr(RetStr, resp->resp);
+if (conv)
+{
+	if ((*conv->conv)(1, &msgp, &resp, conv->appdata_ptr) == PAM_SUCCESS) RetStr=CopyStr(RetStr, resp->resp);
+}
 
 if (resp)
 {
@@ -445,24 +448,11 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 	}
 
 
-/*
-	//get the cached authentication token (password) or prompt for one if one is not already cached.
-	//Final argument is the prompt to use.
-	//pam_get_authtok(pamh, PAM_AUTHTOK, &pam_authtok, Settings->Prompt);
-
-  if (pam_get_item(pamh, PAM_AUTHTOK, (const void **) &pam_authtok) != PAM_SUCCESS) 
-	{
-		syslog(LOG_ERR,"pam_honeycreds: Failed to get pam_authtok");
-		closelog();
-		return(PAM_IGNORE);
-	}
-*/
-
-	pam_authtok=PAMGetAuthtok(pam_authtok, pamh, Settings->Prompt);
-
 	Settings=ParseSettings(argc, argv);
 	Settings->PamUser=CopyStr(Settings->PamUser,pam_user);
 	Settings->PamHost=CopyStr(Settings->PamHost,pam_rhost);
+
+	pam_authtok=PAMGetAuthtok(pam_authtok, pamh, Settings->Prompt);
 
 	//Host matches checks if we've been explicitly told to ignore this host, or only consider certain hosts
 	if (! HostMatches(Settings))
