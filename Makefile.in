@@ -1,6 +1,6 @@
 CC=@CC@
 VERSION=@VERSION@
-CFLAGS=@CFLAGS@
+CFLAGS=@CFLAGS@ -fPIC -fno-stack-protector 
 LIBS=@LIBS@
 INSTALL=@INSTALL@
 prefix=@prefix@
@@ -15,15 +15,15 @@ FLAGS=$(CFLAGS) @DEFS@
 all: pam_honeycreds.so
 
 pam_honeycreds.so: common.h utility.o sha2.o pam_module.c 
-	gcc -fPIC -fno-stack-protector -c pam_module.c
+	gcc $(FLAGS) -c pam_module.c
 	ld -x --shared -lpam -opam_honeycreds.so pam_module.o utility.o sha2.o
 	strip pam_honeycreds.so
 
 utility.o: utility.h utility.c
-	gcc -c utility.c
+	gcc $(FLAGS) -c utility.c
 
 sha2.o: sha2.h sha2.c
-	gcc -c sha2.c
+	gcc $(FLAGS) -c sha2.c
 
 install: pam_honeycreds.so
 	$(INSTALL) -d $(DESTDIR)$(bindir)
