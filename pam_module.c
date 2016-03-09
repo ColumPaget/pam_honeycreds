@@ -32,6 +32,7 @@
 #define FLAG_FAILS 32
 #define FLAG_NOTUSER 64
 #define FLAG_NOTHOST 128
+#define FLAG_IGNORE_BLANK 256
 
 typedef struct
 {
@@ -292,6 +293,7 @@ int i;
 		ptr=argv[i];
 		if (strcmp(ptr,"syslog")==0) Settings->Flags |= FLAG_SYSLOG;
 		else if (strcmp(ptr,"logcreds")==0) Settings->Flags |= FLAG_LOGPASS;
+		else if (strcmp(ptr,"ignore-blank")==0) Settings->Flags |= FLAG_IGNORE_BLANK;
 		else if (strcmp(ptr,"deny")==0) Settings->Flags |= FLAG_DENY;
 		else if (strcmp(ptr,"fails")==0) Settings->Flags |= FLAG_FAILS;
 		else if (strcmp(ptr,"denyall")==0) Settings->Flags |= FLAG_DENYALL;
@@ -418,6 +420,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 	char *pam_authtok=NULL;
 
 
+	Settings=ParseSettings(argc, argv);
+
 	//get the user. If something goes wrong we return PAM_IGNORE. This tells
 	//pam that our module failed in some way, so ignore it. Perhaps we should
 	//return PAM_PERM_DENIED to deny login, but this runs the risk of a broken
@@ -439,6 +443,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 		closelog();
 		return(PAM_IGNORE);
 	}
+	Settings->PamUser=CopyStr(Settings->PamUser,pam_user);
+
 
 	if (pam_get_item(pamh, PAM_RHOST, (const void **) &pam_rhost) != PAM_SUCCESS)
 	{
@@ -446,13 +452,20 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 		closelog();
 		return(PAM_IGNORE);
 	}
-
-
-	Settings=ParseSettings(argc, argv);
-	Settings->PamUser=CopyStr(Settings->PamUser,pam_user);
 	Settings->PamHost=CopyStr(Settings->PamHost,pam_rhost);
 
+
 	pam_authtok=PAMGetAuthtok(pam_authtok, pamh, Settings->Prompt);
+	if ((Settings->Flags & FLAG_IGNORE_BLANK) && (! StrLen(pam_authtok)))
+	{
+		//blank authentication token. This could mean that the user is logging in
+		//using public/private keys. As we have no way of detecting that, and we
+		//have no auth token to process, we return PAM_IGNORE
+
+		syslog(LOG_INFO,"pam_honeycreds: Blank password for %s@%s. Ignoring this login.", Settings->PamUser,Settings->PamHost);
+		closelog();
+		return(PAM_IGNORE);
+	}
 
 	//Host matches checks if we've been explicitly told to ignore this host, or only consider certain hosts
 	if (! HostMatches(Settings))

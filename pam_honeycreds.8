@@ -56,6 +56,11 @@ If this option appears, then passwords will be logged in syslog messages, \fIbut
 
 .TP
 .B
+\fIignore-blank\fP
+Ignore blank passwords. This option is intended for use with ssh systems that use a public/private key pair to log in. Such logins create 'false positive' warnings, but can be ignored using this option.
+
+.TP
+.B
 \fIscript=[path]\fP
 Run script in the event of a match. Arguments passed to the script will be "Event Type", "Matching File Entry" "User" "Host", where "Event Type" will be "Match" or "WrongUser", "Matching File Entry" will have the form "[file path]:[line in file]", "Host" will be the host from which the login has been attempted, and "User" will be the user that is being logged in.
 
