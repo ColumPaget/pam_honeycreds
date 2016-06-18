@@ -10,6 +10,10 @@
 #define StrLen(str) ( str ? strlen(str) : 0 )
 
 
+
+void TSettingsDestroy(TSettings *Settings);
+void THoneyCredDestroy(THoneyCred *Cred);
+
 //Get items from the MatchList, and use them as fnmatch patterns, returning  TRUE
 //if we find one that maches
 int ItemMatches(const char *Item, const char *MatchList);

@@ -55,14 +55,33 @@ Configuration options are:
 **user=[user patterns]**  
 Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to 'user=\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
 
+**!user=[user patterns]**
+Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule DOES NOT APPLY. Note that this is different from putting a ! before a user in a "user=" list, using the !user= keyword means all listed users are ignored by this rule. You CANNOT MIX user= and !user= in the same PAM entry, you must use one or the other to specify which users apply or don't.
+
+**host=[host patterns]**
+Comma separated list of fnmatch (shell-style) patterns that identify hosts for which this rule applies. To match all hosts either leave this out, leave it blank, or explicitly set it to "host=\*". A '!' character at the start of the pattern allows inversion, so to match all hosts but 192.168.1.1 use: "host=!192.168.1.1". Check whether your software is configured to supply host credentials to PAM as hostnames or IP addresses.
+
+**!host=[host patterns]**
+Comma separated list of fnmatch (shell-style) patterns that identify hosts for which this rule DOES NOT APPLY. Note that this is different from putting a ! before a host in a "host=" list, using the !host= keyword means all listed hosts are ignored by this rule. You CANNOT MIX host= and !host= in the same PAM entry, you must use one or the other to specify which hosts apply or don't. Check whether your software is configured to supply host credentials to PAM as hostnames or IP addresses.
+
 **file=[path to creds file]**  
 Comma separated list of files in which to check for matching passwords. File format is discussed below.
+
+**sfile=[path to file]**
+Comma separated list of _sorted_ files in which to check for matching passwords. These will be simple text files, one password per line, and alphabetically sorted so that a fast binary search can be used.
 
 **syslog**  
 Record events via syslog messages
 
 **logcreds**  
 If this option appears, then passwords will be logged in syslog messages, *but only if they do not appear in any of the file lists*. If your own passwords appear in the list files (as sha256 salted hashes, of course) they will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
+
+**logfound**
+If this option appears, then passwords will be logged in syslog messages, _EVEN IF THEY APPEAR IN FILE LISTS_. This is a dangerous option, as if someone gains access to your log files they could harvest your passwords. It is intended for use with lists of passwords that are not your real passwords, so you can detect password-guessing attempts. 
+
+**ignore-blank**
+Ignore blank passwords. This option is intended for use with ssh systems that use a public/private key pair to log in. Such logins create 'false positive' warnings, but can be ignored using this option.
+
 
 **script=[path]**  
 Run script in the event of a match. Arguments passed to the script will be 'Event Type', 'Matching File Entry' 'User' 'Host', where 'Event Type' will be 'Match' or 'WrongUser', 'Matching File Entry' will have the form '[file path]:[line in file]', 'Host' will be the host from which the login has been attempted, and 'User' will be the user that is being logged in.
@@ -85,6 +104,7 @@ If a denyall rule has a script entry, then the script will be run for any event,
 : If pam_honeycreds is the first module in the stack to ask for the users password, then this will be the password prompt message that the user sees. The default is 'Password: '. Ideally, instead of using this option,  pam_honeycreds should appear in the pam module list *after* a module like pam_unix.so, so that the normal configured prompting proceedure is followed.
 
 
+
 # CREDENTIALS FILE FORMAT
 
 The credentials to watch for are stored in text-files as one credential-per-line in either plaintext or as sha256 hashes. A few options can appear on the same line after the credential. Options are separated with a single space. Options are:
@@ -94,6 +114,12 @@ A string that is prepended to the credential before hashing. This is intended to
 
 **user=[user pattern]**  
 An fnmatch pattern that matches usernames *for which this string is actually the password*. This will suppress the creation of an event, or any logging, or running of a script for this user (unless 'denyall' is set, in which case a script will run if it is provided).
+
+
+
+# SORTED FILE FORMAT
+
+Sorted files are simpler than credential files. The contain one password per line with no hashing, quoting, or anything else. The file contents are sorted in alphabetical order to allow fast binary search.
 
 
 # EXAMPLES

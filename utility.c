@@ -4,6 +4,35 @@
 #include "utility.h"
 #include <fnmatch.h>
 
+
+
+
+void TSettingsDestroy(TSettings *Settings)
+{
+if (! Settings) return;
+
+Destroy(Settings->Prompt);
+Destroy(Settings->CredsFiles);
+Destroy(Settings->SortedFiles);
+Destroy(Settings->User);
+Destroy(Settings->PamUser);
+Destroy(Settings->PamHost);
+Destroy(Settings->PamTTY);
+Destroy(Settings->Script);
+free(Settings);
+}
+
+
+void THoneyCredDestroy(THoneyCred *Cred)
+{
+if (! Cred) return;
+
+Destroy(Cred->User);
+Destroy(Cred->Pass);
+Destroy(Cred->Salt);
+free(Cred);
+}
+
 //Get items from the MatchList, and use them as fnmatch patterns, returning  TRUE
 //if we find one that matches. However, if the match pattern starts with '!', then
 //return TRUE if the match fails

@@ -46,6 +46,12 @@ Comma separated list of files in which to check for matching passwords. File for
 
 .TP
 .B
+\fIsfile=[path to file]\fP
+Comma separated list of \fBsorted\fP files in which to check for matching passwords. These will be simple text files, one password per line, and alphabetically sorted so that a fast binary search can be used.
+
+
+.TP
+.B
 \fIsyslog\fP
 Record events via syslog messages. You probably want to do this if you intend to "harvest" lists of passwords tried by your attackers, in which case you need to set "logcreds" too.
 
@@ -53,6 +59,11 @@ Record events via syslog messages. You probably want to do this if you intend to
 .B
 \fIlogcreds\fP
 If this option appears, then passwords will be logged in syslog messages, \fIbut only if they do not appear in any of the file lists\fP. If your own passwords appear in the list files (as sha256 salted hashes, of course). They will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
+
+.TP
+.B
+\fIlogfound\fP
+If this option appears, then passwords will be logged in syslog messages, \fIEVEN IF THEY APPEAR IN FILE LISTS\fP. This is a dangerous option, as if someone gains access to your log files they could harvest your passwords. It is intended for use with lists of passwords that are not your real passwords, so you can detect password-guessing attempts. 
 
 .TP
 .B
@@ -81,6 +92,7 @@ Deny all logins, whether a match is found or not. This is normally used against 
 
 pam_honeycreds should appear in the pam module list \fIafter\fP a module like pam_unix.so, so that the normal configured prompting proceedure is followed.
 
+
 .SH CREDENTIAL FILE CONFIG
 
 .P
@@ -93,6 +105,14 @@ pam_honeycreds uses credentials files that contain one password per line. Passwo
 .ad b
 .P
 The user option is a comma-separated list of fnmatch patterns that match usernames who are \fIallowed\fP to use this password. This is used to raise an error if a user not in the list uses this password. 
+
+
+.SH SORTED FILES
+
+.P
+The 'sfile' option allows the use of a second type of file, a sorted file of unhashed one-password-per-line entries. This is useful for very large lists of common passwords (these are available online) that can be used to detect password guessing/bruteforcing attempts.
+
+
 .SH EXAMPLES
 
 .P

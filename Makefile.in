@@ -11,12 +11,14 @@ mandir=@mandir@
 datarootdir=@datarootdir@
 sysconfdir=@sysconfdir@
 FLAGS=$(CFLAGS) @DEFS@
+OBJ=pam_module.o password_lists.o utility.o sha2.o
+
 
 all: pam_honeycreds.so
 
-pam_honeycreds.so: common.h utility.o sha2.o pam_module.c 
+pam_honeycreds.so: common.h pam_module.c $(OBJ)
 	gcc $(FLAGS) -c pam_module.c
-	ld -x --shared -lpam -opam_honeycreds.so pam_module.o utility.o sha2.o
+	ld -x --shared -lpam -opam_honeycreds.so $(OBJ)
 	strip pam_honeycreds.so
 
 utility.o: utility.h utility.c
