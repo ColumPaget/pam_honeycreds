@@ -4,6 +4,7 @@
 #include <syslog.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 char *HashPassword(char *RetStr, const char *Salt, const char *Password)
 {
@@ -119,7 +120,7 @@ int val;
 
 	//find start
 	while ((*sptr !='\0') && (*sptr !='\n')) sptr++;
-	if (sptr=='\0') return(1);
+	if (*sptr=='\0') return(1);
 
 
 	if (*sptr=='\n')
@@ -148,7 +149,7 @@ const char *sptr, *eptr;
 	if (StartPos > 0) while ((*sptr !='\0') && (*sptr !='\n')) sptr++;
 
 	//if we have a blank block return false
-	if (sptr=='\0') return(FALSE);
+	if (*sptr=='\0') return(FALSE);
 
 	do
 	{
