@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2015 Colum Paget <colums.projects@googlemail.com>
+* SPDX-License-Identifier: GPL-3.0
+*/
 
 #ifndef PAM_HONEYCREDS_PASSLISTS_H
 #define  PAM_HONEYCREDS_PASSLISTS_H

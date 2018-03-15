@@ -1,3 +1,8 @@
+/*
+Copyright (c) 2015 Colum Paget <colums.projects@googlemail.com>
+* SPDX-License-Identifier: GPL-3.0
+*/
+
 //utility functions, mostly string handling
 //if you are looking for PAM module example code, then look in pam_module.c
 
