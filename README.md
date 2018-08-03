@@ -1,4 +1,4 @@
-#PAM HONEYCREDS
+# PAM HONEYCREDS
 
 This is a simple PAM (Pluggable Authentication Modules) that watches for certain passwords being used. A list of passwords can be stored either in cleartext or as a list of salted sha256 hashes. It can also log passwords that do not match any list, but will not log passwords that are in a list, instead reporting them by file and line. In addition to logging events, a script can be run.
 
@@ -6,7 +6,7 @@ Uses of this PAM module are:
 
 ## 1) 'Honey credentials'. 
 
-Fake passwords are made available where they might be found by intruders. If they are ever used it may indicate a network compromise, and in this event pam_honeycreds can be set up to notify the network administrator. Given that people frequently forget/mistype their passwords, a simple 'failed login' alert will cause a lot of noise, and will eventually be ignored by the sysadmin. An actual match against a list of prohibitted passwords should be a clearer signal. Alternatively one can simply watch for passwords from any of the 'common passwords' lists that are available on the internet, in order to detect bruteforce attempts happening within your network.
+Fake passwords are made available where they might be found by intruders. If they are ever used it may indicate a network compromise, and in this event pam_honeycreds can be set up to notify the network administrator. Given that people frequently forget/mistype their passwords, a simple 'failed login' alert will cause a lot of noise, and will eventually be ignored by the sysadmin. An actual match against a list of prohibited passwords should be a clearer signal. Alternatively one can simply watch for passwords from any of the 'common passwords' lists that are available on the internet, in order to detect bruteforce attempts happening within your network.
 
 ## 2) Watching for passwords appearing in brute-force attempts against web-facing servers.   
 
@@ -19,18 +19,18 @@ pam_honeycreds can be setup to log the passwords used by bruteforcers trying to 
 
 #BIG FAT WARNING
 
-Firstly, you should be aware that changing your PAM configuration could result in locking yourself out of your own computer systems if you get something wrong or  encounter some kind of weird error. If you forget to supply a key= option in the config, then you will have effectively created a 'deny' rule Thus you should first test this module on the 'su' configuration on a non-essential machine that allows root login on the vitual terminals tty1 tty2 ... ttyN. Thus, if something goes wrong, you'll still be able to log in as root and correct it.
+Firstly, you should be aware that changing your PAM configuration could result in locking yourself out of your own computer systems if you get something wrong or  encounter some kind of weird error. If you forget to supply a key= option in the config, then you will have effectively created a 'deny' rule Thus you should first test this module on the 'su' configuration on a non-essential machine that allows root login on the virtual terminals tty1 tty2 ... ttyN. Thus, if something goes wrong, you'll still be able to log in as root and correct it.
 
 If you are watching for your own passwords turning up in places where they shouldn't, then you should store them as salted sha-256 hashes in a file readable only by root. This file itself is a stealable resource, so passwords should not be stored in the clear. Ideally you should mix your passwords in with decoy passwords that are also salted and hashed. A script 'buildpasswords.sh' is provided to generate these hashes, though it requires the sha256sum utility to be present.
 
 
-This PAM module is free software under the Gnu Public Licence version 3,  and comes with no express or implied warranties or guarentees of anything. 
+This PAM module is free software under the Gnu Public Licence version 3,  and comes with no express or implied warranties or guarantees of anything. 
 
 
 
 # INSTALL
 
-The usual proceedure:
+The usual procedure:
 
 ```
 ./configure
@@ -101,7 +101,7 @@ auth    required  pam_honeycreds.so user=root,admin syslog logcreds denyall file
 If a denyall rule has a script entry, then the script will be run for any event, even if no match is found within the credentials files. This allows triggering against some users (e.g. root) that should never login via some services (say, ssh).
 
 **prompt=[prompt]** 
-: If pam_honeycreds is the first module in the stack to ask for the users password, then this will be the password prompt message that the user sees. The default is 'Password: '. Ideally, instead of using this option,  pam_honeycreds should appear in the pam module list *after* a module like pam_unix.so, so that the normal configured prompting proceedure is followed.
+: If pam_honeycreds is the first module in the stack to ask for the users password, then this will be the password prompt message that the user sees. The default is 'Password: '. Ideally, instead of using this option,  pam_honeycreds should appear in the pam module list *after* a module like pam_unix.so, so that the normal configured prompting procedure is followed.
 
 
 
