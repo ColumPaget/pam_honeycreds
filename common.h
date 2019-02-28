@@ -14,7 +14,7 @@ Copyright (c) 2015 Colum Paget <colums.projects@googlemail.com>
 #include <string.h>
 #include <sys/types.h>
 
-#define VERSION "1.7"
+#define VERSION "1.8"
 #define FALSE 0
 #define TRUE 1
 
