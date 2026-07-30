@@ -14,14 +14,13 @@ Copyright (c) 2015 Colum Paget <colums.projects@googlemail.com>
 #include <string.h>
 #include <sys/types.h>
 
-#define VERSION "1.9"
+#define VERSION "2.0"
 #define FALSE 0
 #define TRUE 1
 
-#define MATCH_NO 0
-#define MATCH_WRONG_USER 1
-#define MATCH_YES 3
-#define MATCH_VALID 4
+#define MATCH_NO 0              //no match found in password lists
+#define MATCH_YES 3             //match found, but user does not exist
+#define MATCH_VALID 4           //match found for existing user
 
 #define FLAG_SYSLOG  1
 #define FLAG_DENY 4

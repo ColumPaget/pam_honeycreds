@@ -269,6 +269,21 @@ return(ptr);
 }
 
 
+void ScrubString(char *Str)
+{
+int len, count, i, times;
+
+len=StrLen(Str);
+
+for (count=0; count < 10; count++)
+{
+for (i=0; i < len; i++)
+{
+Str[i]= rand() % 255;
+}
+}
+memset(Str,0,len);
+}
 
 void Destroy(void *Item)
 {

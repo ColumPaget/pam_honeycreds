@@ -33,6 +33,7 @@ void StripTrailingWhitespace(char *str);
 void StripLeadingWhitespace(char *str);
 void StripQuotes(char *Str);
 const char *GetTok(const char *In, char Delim, char **Token);
+void ScrubString(char *Str);
 void Destroy(void *Item);
 
 #endif

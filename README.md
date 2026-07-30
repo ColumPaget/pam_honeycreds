@@ -74,10 +74,10 @@ Comma separated list of _sorted_ files in which to check for matching passwords.
 Record events via syslog messages
 
 **logcreds**  
-If this option appears, then passwords will be logged in syslog messages, *but only if they do not appear in any of the file lists*. If your own passwords appear in the list files (as sha256 salted hashes, of course) they will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
+If this option appears, then passwords will be logged in syslog messages, *but only if they do not appear in any of the file lists*. If your own passwords appear in the list files (as sha256 salted hashes, of course) they will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them. Since pam_honeycreds 2.0 'logcreds' implies 'syslog'.
 
 **logfound**
-If this option appears, then passwords will be logged in syslog messages, _EVEN IF THEY APPEAR IN FILE LISTS_. This is a dangerous option, as if someone gains access to your log files they could harvest your passwords. It is intended for use with lists of passwords that are not your real passwords, so you can detect password-guessing attempts. 
+If this option appears, then passwords will be logged in syslog messages, _EVEN IF THEY APPEAR IN FILE LISTS_. This is a dangerous option, as if someone gains access to your log files they could harvest your passwords. It is intended for use with lists of passwords that are not your real passwords, so you can detect password-guessing attempts.  Since pam_honeycreds 2.0 'logfound' implies 'syslog'.
 
 **ignore-blank**
 Ignore blank passwords. This option is intended for use with ssh systems that use a public/private key pair to log in. Such logins create 'false positive' warnings, but can be ignored using this option.

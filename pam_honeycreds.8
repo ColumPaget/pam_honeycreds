@@ -58,12 +58,12 @@ Record events via syslog messages. You probably want to do this if you intend to
 .TP
 .B
 \fIlogcreds\fP
-If this option appears, then passwords will be logged in syslog messages, \fIbut only if they do not appear in any of the file lists\fP. If your own passwords appear in the list files (as sha256 salted hashes, of course). They will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them.
+If this option appears, then passwords will be logged in syslog messages, \fIbut only if they do not appear in any of the file lists\fP. If your own passwords appear in the list files (as sha256 salted hashes, of course). They will not be logged. Remember, your log files could be compromised too, so you want to avoid revealing your passwords in them. Since pam_honeycreds 2.0 'logcreds' implies 'syslog'.
 
 .TP
 .B
 \fIlogfound\fP
-If this option appears, then passwords will be logged in syslog messages, \fIEVEN IF THEY APPEAR IN FILE LISTS\fP. This is a dangerous option, as if someone gains access to your log files they could harvest your passwords. It is intended for use with lists of passwords that are not your real passwords, so you can detect password-guessing attempts. 
+If this option appears, then passwords will be logged in syslog messages, \fIEVEN IF THEY APPEAR IN FILE LISTS\fP. This is a dangerous option, as if someone gains access to your log files they could harvest your passwords. It is intended for use with lists of passwords that are not your real passwords, so you can detect password-guessing attempts.  Since pam_honeycreds 2.0 'logfound' implies 'syslog'.
 
 .TP
 .B

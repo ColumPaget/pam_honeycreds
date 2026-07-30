@@ -40,6 +40,25 @@ Destroy(Tempstr);
 }
 
 
+void ReportLogin(TSettings *Settings, const char *Title, const char *User, const char *Password, const char *FoundFiles, const char *RHost, int Found)
+{
+int LogPass=FALSE;
+
+if (Settings->Flags & FLAG_SYSLOG) 
+{
+   if (StrLen(Password) < 1) LogPass=FALSE;
+   else if (Found && (Settings->Flags & FLAG_LOGFOUND)) LogPass=TRUE;
+   else if (Settings->Flags & FLAG_LOGPASS) LogPass=TRUE;
+
+   if (LogPass) syslog(LOG_NOTICE, "%s. user=[%s] password=[%s] password-in=[%s] rhost=[%s]", Title, User, Password, FoundFiles, RHost);
+   else syslog(LOG_NOTICE, "%s. user=[%s] password-in=[%s] rhost=[%s]",Title, User, FoundFiles, RHost);
+}
+
+
+}
+
+
+
 int ProcessResult(TSettings *Settings, const char *AuthTok, const char *FoundFiles, int Result)
 {
 int PamResult=PAM_IGNORE;
@@ -47,26 +66,11 @@ int PamResult=PAM_IGNORE;
 switch (Result)
 {
 	case MATCH_NO:
-		if (Settings->Flags & FLAG_LOGPASS) 
-		{
-			if (Settings->Flags & FLAG_SYSLOG) syslog(LOG_NOTICE, "pam_honeycreds: user=[%s] pass=[%s] rhost=[%s]",Settings->PamUser, AuthTok, Settings->PamHost);
-		}
-
 		if (Settings->Flags & FLAG_FAILS)
 		{
-			if (Settings->Flags & FLAG_SYSLOG) syslog(LOG_NOTICE, "pam_honeycreds: Attempt to login using wrong password user=[%s] rhost=[%s]", Settings->PamUser, Settings->PamHost);
+		 ReportLogin(Settings, "pam_honeycreds: Attempt to login using wrong password",  Settings->PamUser, AuthTok, FoundFiles, Settings->PamHost, FALSE);
 		RunScript(Settings, "FAIL", "");
 		}
-	break;
-
-	case MATCH_WRONG_USER:
-		//Here we deny or allow a *match*. FLAG_DENYALL Denies everything, even non-matches that might be authenticated by another
-		//module
-		if (Settings->Flags & FLAG_DENY) PamResult=PAM_PERM_DENIED;
-		else PamResult=PAM_IGNORE;
-
-		if (Settings->Flags & FLAG_SYSLOG) syslog(LOG_NOTICE, "pam_honeycreds: WRONG USER: Attempt to login using password in [%s]. user=[%s] rhost=[%s]",FoundFiles, Settings->PamUser, Settings->PamHost);
-		RunScript(Settings, "WrongUser", FoundFiles);
 	break;
 
 	case MATCH_YES:
@@ -75,15 +79,12 @@ switch (Result)
 		if (Settings->Flags & FLAG_DENY) PamResult=PAM_PERM_DENIED;
 		else PamResult=PAM_IGNORE;
 
-		if (Settings->Flags & FLAG_SYSLOG) 
-		{
-			if (Settings->Flags & FLAG_LOGFOUND) syslog(LOG_NOTICE, "pam_honeycreds: Attempt to login using password [%s] in [%s]. user=[%s] rhost=[%s]",AuthTok, FoundFiles, Settings->PamUser, Settings->PamHost);
-			else syslog(LOG_NOTICE, "pam_honeycreds: Attempt to login using password in [%s]. user=[%s] rhost=[%s]",FoundFiles, Settings->PamUser, Settings->PamHost);
-		}
+		ReportLogin(Settings, "pam_honeycreds: Attempt to login with wrong user for password",  Settings->PamUser, AuthTok, FoundFiles, Settings->PamHost, TRUE);
 		RunScript(Settings, "Match", FoundFiles);
 	break;
 
 	case MATCH_VALID:
+		ReportLogin(Settings, "pam_honeycreds: Attempt to login",  Settings->PamUser, AuthTok, FoundFiles, Settings->PamHost, TRUE);
 		//do nothing
 	break;
 }
@@ -108,8 +109,8 @@ int i;
 	{
 		ptr=argv[i];
 		if (strcmp(ptr,"syslog")==0) Settings->Flags |= FLAG_SYSLOG;
-		else if (strcmp(ptr,"logcreds")==0) Settings->Flags |= FLAG_LOGPASS;
-		else if (strcmp(ptr,"logfound")==0) Settings->Flags |= FLAG_LOGFOUND;
+		else if (strcmp(ptr,"logcreds")==0) Settings->Flags |= FLAG_LOGPASS | FLAG_SYSLOG;
+		else if (strcmp(ptr,"logfound")==0) Settings->Flags |= FLAG_LOGFOUND | FLAG_SYSLOG;
 		else if (strcmp(ptr,"ignore-blank")==0) Settings->Flags |= FLAG_IGNORE_BLANK;
 		else if (strcmp(ptr,"deny")==0) Settings->Flags |= FLAG_DENY;
 		else if (strcmp(ptr,"fails")==0) Settings->Flags |= FLAG_FAILS;
@@ -180,6 +181,7 @@ struct pam_message msg;
 const struct pam_message *msgp;
 struct pam_response *resp=NULL;
 const char *pam_authtok=NULL;
+int len;
 
 RetStr=CopyStr(RetStr,"");
 
@@ -188,13 +190,17 @@ RetStr=CopyStr(RetStr,"");
 //it does not need to be freed. We return a copy of it instead.
 if (pam_get_item(pamh, PAM_AUTHTOK, (const void **) &pam_authtok) == PAM_SUCCESS) 
 {
-	if (StrLen(pam_authtok)) return(CopyStr(RetStr,pam_authtok));
+	if (StrLen(pam_authtok)) RetStr=CopyStr(RetStr, pam_authtok);
 }
+
+StripTrailingWhitespace(RetStr);
 
 //if the above pam_get_item returned nothing, then we'll have to try doing the pam
 //conversation 'by hand'.
-
 #ifndef OPENPAM
+if (! StrLen(RetStr))
+{
+
 if (pam_get_item(pamh, PAM_CONV, (const void **)&conv) != PAM_SUCCESS) return(RetStr);
 
 msg.msg_style = PAM_PROMPT_ECHO_OFF;
@@ -203,16 +209,26 @@ msgp = &msg;
 
 if (conv)
 {
-	if ((*conv->conv)(1, &msgp, &resp, conv->appdata_ptr) == PAM_SUCCESS) RetStr=CopyStr(RetStr, resp->resp);
+	if ((*conv->conv)(1, &msgp, &resp, conv->appdata_ptr) == PAM_SUCCESS) 
+        {
+		//if the string starts with a printable character then we got a password
+		if (resp && resp->resp && isprint(*(resp->resp))) RetStr=CopyStr(RetStr, resp->resp);
+	}
 }
 
 if (resp)
 {
+	if (resp->resp)
+	{
+	ScrubString(resp->resp);
 	Destroy(resp->resp);
+	}
 	Destroy(resp);
+}
 }
 #endif
 
+StripTrailingWhitespace(RetStr);
 return(RetStr);
 }
 
@@ -238,6 +254,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 	char *pam_authtok=NULL;
 
 
+	FoundFiles=CopyStr(FoundFiles, "");
 	Settings=ParseSettings(argc, argv);
 
 	//get the user. If something goes wrong we return PAM_IGNORE. This tells
@@ -255,6 +272,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 
 	openlog(pam_service,0,LOG_AUTH);
 
+
+
 	if ((pam_get_user(pamh, &pam_user, NULL) != PAM_SUCCESS) || (pam_user==NULL))
 	{
 		syslog(LOG_ERR,"pam_honeycreds: Failed to get pam_user");
@@ -262,7 +281,6 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 		return(PAM_IGNORE);
 	}
 	Settings->PamUser=CopyStr(Settings->PamUser,pam_user);
-
 
 	if (pam_get_item(pamh, PAM_RHOST, (const void **) &pam_rhost) != PAM_SUCCESS)
 	{
@@ -296,17 +314,20 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 		val=ListFilesCheck(Settings, Settings->PamUser, pam_authtok, Settings->PamHost, &FoundFiles);
 		PamResult=ProcessResult(Settings, pam_authtok, FoundFiles, val);
 
+		//whatever the result from ProcessResult we can override it here
 		if (Settings->Flags & FLAG_DENYALL)
 		{
-			syslog(LOG_NOTICE, "pam_honeycreds: DENY: user=[%s] rhost=[%s]",Settings->PamUser, Settings->PamHost);
+			ReportLogin(Settings, "pam_honeycreds: DENY",  Settings->PamUser, pam_authtok, FoundFiles, Settings->PamHost, FALSE);
 		 	PamResult=PAM_PERM_DENIED;
-			if ((val==MATCH_NO) && StrLen(Settings->Script)) RunScript(Settings, "DENY", "");
+			if ((val == MATCH_NO) && StrLen(Settings->Script)) RunScript(Settings, "DENY", "");
 		}
+
 	}
 
 	closelog();
 	Destroy(Settings);
 	Destroy(Tempstr);
+	ScrubString(pam_authtok);
 	Destroy(pam_authtok);
 
   return(PamResult);
